@@ -72,6 +72,46 @@ function saveConfig(config) {
   writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
 }
 
+// ─── Cache ────────────────────────────────────────────────────────────────────
+
+const CACHE_PATH = path.join(homedir(), '.devclean-cache.json');
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 time
+
+function loadCache(rootPath) {
+  try {
+    const raw = JSON.parse(readFileSync(CACHE_PATH, 'utf8'));
+    const entry = raw[rootPath];
+    if (!entry) return null;
+    const age = Date.now() - entry.ts;
+    if (age > CACHE_TTL_MS) return null;
+    return { entries: entry.entries, ageMs: age };
+  } catch {
+    return null;
+  }
+}
+
+function saveCache(rootPath, entries) {
+  let raw = {};
+  try { raw = JSON.parse(readFileSync(CACHE_PATH, 'utf8')); } catch { /* ny fil */ }
+  raw[rootPath] = { ts: Date.now(), entries };
+  writeFileSync(CACHE_PATH, JSON.stringify(raw), 'utf8');
+}
+
+function invalidateCache(rootPath) {
+  try {
+    const raw = JSON.parse(readFileSync(CACHE_PATH, 'utf8'));
+    delete raw[rootPath];
+    writeFileSync(CACHE_PATH, JSON.stringify(raw), 'utf8');
+  } catch { /* ingen cache at invalidere */ }
+}
+
+function formatAge(ms) {
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'lige nu';
+  if (m < 60) return `${m} min siden`;
+  return `${Math.floor(m / 60)} time(r) siden`;
+}
+
 function isPinned(config, entryPath) {
   return config.pinnedProjects.some(p => entryPath.startsWith(p) || p.startsWith(entryPath));
 }
@@ -180,7 +220,18 @@ function getProjectName(dirPath, rootPath) {
 
 // ─── Scanning ────────────────────────────────────────────────────────────────
 
-async function scan(rootPath, config) {
+async function scan(rootPath, config, forceFresh = false) {
+  if (!forceFresh) {
+    const cached = loadCache(rootPath);
+    if (cached) {
+      // Filtrer poster der er slettet siden cache blev gemt
+      const stillExists = cached.entries.filter(e => existsSync(e.path));
+      console.log(chalk.dim(`\nBruger cache fra ${formatAge(cached.ageMs)} — ${stillExists.length} poster`) +
+        chalk.dim(`  (--fresh for ny scanning)\n`));
+      return stillExists;
+    }
+  }
+
   console.log(chalk.dim(`\nScanner ${rootPath} ...\n`));
 
   const ignored = config.ignoredPaths ?? [];
@@ -237,6 +288,7 @@ async function scan(rootPath, config) {
   });
 
   deduped.sort((a, b) => b.bytes - a.bytes);
+  saveCache(rootPath, deduped);
   return deduped;
 }
 
@@ -354,7 +406,7 @@ async function managePins(rootPath, config) {
 
 // ─── Sletning ────────────────────────────────────────────────────────────────
 
-async function runDelete(toDelete, dryRunForced = null) {
+async function runDelete(toDelete, dryRunForced = null, _rootPath = null) {
   if (toDelete.length === 0) {
     console.log(chalk.yellow('\nIntet valgt.\n'));
     return;
@@ -394,6 +446,7 @@ async function runDelete(toDelete, dryRunForced = null) {
 
   const verb = dryRun ? 'Ville frigive' : 'Frigivet';
   console.log(chalk.bold.green(`\n${verb}: ${formatSize(savedBytes)} (${deleted} mapper)\n`));
+  if (!dryRun && deleted > 0) invalidateCache(_rootPath);
 
   if (dryRun) {
     const goForIt = await confirm({ message: 'Kør nu for rigtig?', default: false });
@@ -458,7 +511,7 @@ async function interactiveClean(entries, config, rootPath) {
     toDelete = selected.map(i => entries[i]);
   }
 
-  await runDelete(toDelete);
+  await runDelete(toDelete, null, rootPath);
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -500,12 +553,14 @@ ${chalk.bold('Eksempler:')}
   devclean ~/Apps         Scan specifik sti
   devclean . --list       Vis kun liste, slet intet
   devclean . --yes        Slet al cache uden prompts (respektér pins)
+  devclean . --fresh      Tving ny scanning (ignorer cache)
   devclean . --pins       Administrér pinnede projekter
   devclean update         Opdatér til nyeste version fra GitHub
 
 ${chalk.bold('Flags:')}
   -l, --list     Vis liste, slet intet
   -y, --yes      Slet al safe cache uden prompts
+  -f, --fresh    Ignorer cache, scan forfra
   -p, --pins     Administrér pinnede projekter
   -v, --version  Vis version
   -h, --help     Vis denne hjælp
@@ -518,9 +573,10 @@ ${chalk.bold('Config:')} ~/.devclean.json
   }
 
   const rootPath = path.resolve(args.find(a => !a.startsWith('-')) ?? process.cwd());
-  const listOnly = args.includes('--list') || args.includes('-l');
-  const pinsOnly = args.includes('--pins') || args.includes('-p');
-  const yesCache = args.includes('--yes')  || args.includes('-y');
+  const listOnly  = args.includes('--list')  || args.includes('-l');
+  const pinsOnly  = args.includes('--pins')  || args.includes('-p');
+  const yesCache  = args.includes('--yes')   || args.includes('-y');
+  const forceFresh = args.includes('--fresh') || args.includes('-f');
 
   if (!existsSync(rootPath)) {
     console.error(chalk.red(`Stien findes ikke: ${rootPath}`));
@@ -543,7 +599,7 @@ ${chalk.bold('Config:')} ~/.devclean.json
     return;
   }
 
-  const entries = await scan(rootPath, config);
+  const entries = await scan(rootPath, config, forceFresh);
   if (entries.length === 0) return;
 
   printTable(entries);
@@ -561,6 +617,7 @@ ${chalk.bold('Config:')} ~/.devclean.json
       }
     }
     console.log(chalk.bold.green(`\nFrigivet: ${formatSize(saved)} (${toDelete.length} mapper)\n`));
+    invalidateCache(rootPath);
     return;
   }
 
