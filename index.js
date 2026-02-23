@@ -3,6 +3,10 @@ import { execSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import path from 'path';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { version } = require('./package.json');
 import chalk from 'chalk';
 import { checkbox, select, confirm } from '@inquirer/prompts';
 import Table from 'cli-table3';
@@ -459,8 +463,62 @@ async function interactiveClean(entries, config, rootPath) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
+function printHeader() {
+  console.log(chalk.bold.cyan('\n╔══════════════════════════════╗'));
+  console.log(chalk.bold.cyan('║  devclean — dev folder ryd  ║'));
+  console.log(chalk.bold.cyan('╚══════════════════════════════╝\n'));
+}
+
+async function selfUpdate() {
+  printHeader();
+  console.log(chalk.dim('  Opdaterer fra github:cbroberg/devclean ...\n'));
+  try {
+    execSync('npm install -g cbroberg/devclean', { stdio: 'inherit' });
+    console.log(chalk.bold.green('\n✓ devclean er opdateret!\n'));
+  } catch {
+    console.error(chalk.red('\nOpdatering fejlede. Prøv manuelt: npm install -g cbroberg/devclean\n'));
+    process.exit(1);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
+
+  // Subkommandoer og flags uden rootPath
+  if (args[0] === 'update') { await selfUpdate(); return; }
+  if (args.includes('--version') || args.includes('-v')) {
+    console.log(`devclean v${version}`);
+    return;
+  }
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`
+${chalk.bold.cyan('devclean')} v${version} — ryd op i dev folder clutter
+
+${chalk.bold('Brug:')}
+  devclean [sti] [flag]
+
+${chalk.bold('Eksempler:')}
+  devclean .              Scan og interaktiv oprydning i nuværende mappe
+  devclean ~/Apps         Scan specifik sti
+  devclean . --list       Vis kun liste, slet intet
+  devclean . --yes        Slet al cache uden prompts (respektér pins)
+  devclean . --pins       Administrér pinnede projekter
+  devclean update         Opdatér til nyeste version fra GitHub
+
+${chalk.bold('Flags:')}
+  -l, --list     Vis liste, slet intet
+  -y, --yes      Slet al safe cache uden prompts
+  -p, --pins     Administrér pinnede projekter
+  -v, --version  Vis version
+  -h, --help     Vis denne hjælp
+
+${chalk.bold('Config:')} ~/.devclean.json
+  pinnedProjects   node_modules beskyttes i disse projekter
+  ignoredPaths     Disse stier springes over helt
+`);
+    return;
+  }
+
   const rootPath = path.resolve(args.find(a => !a.startsWith('-')) ?? process.cwd());
   const listOnly = args.includes('--list') || args.includes('-l');
   const pinsOnly = args.includes('--pins') || args.includes('-p');
@@ -473,9 +531,7 @@ async function main() {
 
   const config = loadConfig();
 
-  console.log(chalk.bold.cyan('\n╔══════════════════════════════╗'));
-  console.log(chalk.bold.cyan('║  devclean — dev folder ryd  ║'));
-  console.log(chalk.bold.cyan('╚══════════════════════════════╝\n'));
+  printHeader();
   console.log(chalk.dim(`  Root:    ${rootPath}`));
   console.log(chalk.dim(`  Config:  ${CONFIG_PATH}`));
   if (config.pinnedProjects.length > 0)
