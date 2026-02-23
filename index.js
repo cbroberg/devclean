@@ -464,9 +464,7 @@ async function interactiveClean(entries, config, rootPath) {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 function printHeader() {
-  console.log(chalk.bold.cyan('\n╔══════════════════════════════╗'));
-  console.log(chalk.bold.cyan('║  devclean — dev folder ryd  ║'));
-  console.log(chalk.bold.cyan('╚══════════════════════════════╝\n'));
+  console.log(chalk.bold.cyan(`\ndevclean`) + chalk.dim(` v${version}\n`));
 }
 
 async function selfUpdate() {
