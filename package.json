@@ -1,6 +1,6 @@
 {
   "name": "devclean",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI til oprydning af dev folder clutter (node_modules, .next, .turbo osv.)",
   "main": "index.js",
   "type": "module",
