@@ -1,0 +1,19 @@
+{
+  "name": "devclean",
+  "version": "1.0.0",
+  "description": "CLI til oprydning af dev folder clutter (node_modules, .next, .turbo osv.)",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "devclean": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.10.1",
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5"
+  },
+  "license": "ISC"
+}
