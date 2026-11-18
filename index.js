@@ -10,6 +10,7 @@ const { version } = require('./package.json');
 import chalk from 'chalk';
 import { checkbox, select, confirm } from '@inquirer/prompts';
 import Table from 'cli-table3';
+import { findScreenshots, deleteScreenshots } from './screenshots.js';
 
 // ─── Clutter definitions ─────────────────────────────────────────────────────
 
@@ -537,6 +538,7 @@ async function main() {
 
   // Subkommandoer og flags uden rootPath
   if (args[0] === 'update') { await selfUpdate(); return; }
+  if (args[0] === 'screenshots') { await cleanScreenshots(args); return; }
   if (args.includes('--version') || args.includes('-v')) {
     console.log(`devclean v${version}`);
     return;
@@ -556,6 +558,9 @@ ${chalk.bold('Eksempler:')}
   devclean . --fresh      Tving ny scanning (ignorer cache)
   devclean . --pins       Administrér pinnede projekter
   devclean update         Opdatér til nyeste version fra GitHub
+  devclean screenshots    Find og slet macOS-skærmbilleder på hele disken
+                          (beholder dem under 1 dag, "DO NOT DELETE"-mapper,
+                          git-repos og iCloud). Tager --list og --yes.
 
 ${chalk.bold('Flags:')}
   -l, --list     Vis liste, slet intet
@@ -624,6 +629,29 @@ ${chalk.bold('Config:')} ~/.devclean.json
   if (!listOnly) {
     await interactiveClean(entries, config, rootPath);
   }
+}
+
+async function cleanScreenshots(args) {
+  const listOnly = args.includes('--list') || args.includes('-l');
+  const yes = args.includes('--yes') || args.includes('-y');
+  printHeader();
+  console.log(chalk.dim('  Søger efter skærmbilleder på hele disken...\n'));
+  const { deletable, kept } = findScreenshots();
+  const total = deletable.reduce((s, e) => s + e.bytes, 0);
+  const home = homedir();
+  for (const e of deletable) {
+    const when = new Date(e.mtimeMs).toLocaleDateString('da-DK');
+    console.log(`  ${chalk.dim(when.padEnd(11))} ${formatSize(e.bytes).padStart(9)}  ${e.path.replace(home, '~')}`);
+  }
+  const byReason = {};
+  for (const k of kept) byReason[k.reason] = (byReason[k.reason] ?? 0) + 1;
+  console.log(chalk.bold(`\n  Kan slettes: ${deletable.length} skærmbilleder (${formatSize(total)})`));
+  for (const [r, n] of Object.entries(byReason)) console.log(chalk.green(`  Beholdes:    ${n} — ${r}`));
+  console.log('');
+  if (listOnly || deletable.length === 0) return;
+  if (!yes && !(await confirm({ message: `Slet ${deletable.length} skærmbilleder (${formatSize(total)})?`, default: false }))) return;
+  const { count, freed } = deleteScreenshots(deletable);
+  console.log(chalk.bold.green(`\nSlettet: ${count} skærmbilleder, frigivet ${formatSize(freed)}\n`));
 }
 
 main().catch(err => {
