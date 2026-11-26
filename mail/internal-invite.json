@@ -1,0 +1,14 @@
+{
+  "purpose": "team_invite",
+  "audience": "internal",
+  "subject": "Du er tilføjet til teamet på {{projektNavn}}",
+  "preheader": "Du er tilføjet til projektet — klik på knappen, så er du logget ind.",
+  "blocks": [
+    { "type": "heading", "text": "Hej {{fornavn}}" },
+    { "type": "paragraph", "text": "Du er nu med i teamet på {{projektNavn}}. Boardet, planerne og overleveringerne ligger klar." },
+    { "type": "button", "text": "Åbn boardet", "url": "{{invite_url}}" },
+    { "type": "note", "text": "Linket virker i {{linkGyldighed}} og er kun til {{email}}." }
+  ],
+  "brand": { "footerLines": ["devclean — WebHouse ApS"] },
+  "sourcePath": "mail/internal-invite.json"
+}

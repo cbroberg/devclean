@@ -1,0 +1,14 @@
+{
+  "purpose": "team_invite",
+  "audience": "enduser",
+  "subject": "Du er inviteret til {{projektNavn}}",
+  "preheader": "Du er inviteret — klik på knappen, så er du logget ind. Ingen adgangskode.",
+  "blocks": [
+    { "type": "heading", "text": "Hej {{fornavn}}" },
+    { "type": "paragraph", "text": "Du er inviteret til at følge {{projektNavn}}. Her kan du se, hvad vi arbejder på, og hvad der er leveret." },
+    { "type": "button", "text": "Åbn {{projektNavn}}", "url": "{{invite_url}}" },
+    { "type": "note", "text": "Linket virker i {{linkGyldighed}} og er kun til {{email}}. Har du ikke ventet denne mail, kan du se bort fra den." }
+  ],
+  "brand": { "footerLines": ["devclean — WebHouse ApS"] },
+  "sourcePath": "mail/enduser-invite.json"
+}
