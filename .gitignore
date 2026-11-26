@@ -1,1 +1,8 @@
 node_modules/
+
+# cardmem — secret-bearing files, never commit
+.mcp.json
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
