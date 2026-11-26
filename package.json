@@ -11,8 +11,8 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.10.1",
-    "chalk": "^5.4.1",
+    "@inquirer/prompts": "^8.8.1",
+    "chalk": "^6.0.1",
     "cli-table3": "^0.6.5"
   },
   "license": "ISC"
