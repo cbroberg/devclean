@@ -4,14 +4,13 @@
 
 ## Project layout
 
-> **Fill this in for THIS repo.** Every cardmem-compatible repo MUST have a `## Project layout` section with the columns `Area | Path | Notes`. The cardmem Init flow (or the `feature` skill) populates it from the repo's actual structure — replace the example rows below.
-
 | Area | Path | Notes |
 |---|---|---|
-| _(example — replace)_ App | `src/` | Main application code |
-| _(example — replace)_ Tests | `tests/` | Test suites |
-
-Replace the example rows above with this repo's real layout before relying on cardmem skills to scope changes.
+| CLI (dev clutter) | `index.js` | Entry/bin: arg parsing, scan, cache, pins, interactive + `--yes` delete, `update` |
+| Screenshots | `screenshots.js` | `devclean screenshots` — find/delete macOS screenshots disk-wide with safety rules |
+| Tests | `screenshots.test.js` | `node --test` suite for the screenshot rules |
+| Plan-docs | `docs/features/` | `F<n>-<slug>.md`, written via cardmem |
+| CI | `.github/workflows/` | Fleet secret + security gates (cardmem-owned) |
 
 ## Fleet rules (cardmem-owned)
 
